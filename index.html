@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rate Monotonic Scheduler</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 30px;
+            width: 400px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .task-list {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .task-item {
+            margin-bottom: 5px;
+        }
+
+        .result {
+            margin-top: 20px;
+            font-weight: bold;
+            text-align: center;
+            color: #333;
+        }
+
+        .result h3 {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rate Monotonic Scheduler</h1>
+        <form id="task-form">
+            <label for="id">ID da Tarefa:</label>
+            <input type="text" id="id" required>
+
+            <label for="period">Período (ms):</label>
+            <input type="number" id="period" required>
+
+            <label for="execution_time">Tempo de Execução (ms):</label>
+            <input type="number" id="execution_time" required>
+
+            <button type="button" onclick="adicionarTarefa()">Adicionar Tarefa</button>
+        </form>
+
+        <div class="task-list" id="task-list"></div>
+
+        <button onclick="analisarEscalonamento()">Analisar Workload</button>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const tasks = [];
+
+        function adicionarTarefa() {
+            const id = document.getElementById('id').value;
+            const period = parseInt(document.getElementById('period').value);
+            const execution_time = parseInt(document.getElementById('execution_time').value);
+
+            if (id && period > 0 && execution_time > 0) {
+                tasks.push({ id, period, execution_time });
+                atualizarListaDeTarefas();
+                limparFormulario();
+            } else {
+                alert('Por favor, preencha todos os campos corretamente.');
+            }
+        }
+
+        function atualizarListaDeTarefas() {
+            const taskListDiv = document.getElementById('task-list');
+            taskListDiv.innerHTML = '<h3>Tarefas Adicionadas:</h3>';
+
+            tasks.forEach((task, index) => {
+                taskListDiv.innerHTML += `<div class="task-item">ID: ${task.id}, Período: ${task.period} ms, Tempo de Execução: ${task.execution_time} ms</div>`;
+            });
+        }
+
+        function limparFormulario() {
+            document.getElementById('id').value = '';
+            document.getElementById('period').value = '';
+            document.getElementById('execution_time').value = '';
+        }
+
+        function calcularUtilizacaoTotal(tasks) {
+            return tasks.reduce((sum, task) => sum + (task.execution_time / task.period), 0);
+        }
+
+        function verificarViabilidadeEscalonamento(tasks) {
+            const n = tasks.length;
+            const limiteUtilizacao = n * (Math.pow(2, 1 / n) - 1);
+            const utilizacaoTotal = calcularUtilizacaoTotal(tasks);
+            return utilizacaoTotal <= limiteUtilizacao;
+        }
+
+        function ordenarTarefasPorPrioridade(tasks) {
+            return tasks.sort((a, b) => a.period - b.period).map((task, index) => ({
+                id: task.id,
+                priority: index + 1
+            }));
+        }
+
+        function analisarEscalonamento() {
+            if (tasks.length === 0) {
+                alert('Por favor, adicione pelo menos uma tarefa.');
+                return;
+            }
+
+            const viabilidade = verificarViabilidadeEscalonamento(tasks);
+            const resultadoViabilidade = viabilidade ? 'viable' : 'not viable';
+            const sugestaoEscalonamento = ordenarTarefasPorPrioridade(tasks);
+
+            const resultado = {
+                schedulability: resultadoViabilidade,
+                suggested_schedule: sugestaoEscalonamento
+            };
+
+            exibirResultado(resultado);
+        }
+
+        function exibirResultado(resultado) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<p>Viabilidade do Escalonamento: ${resultado.schedulability}</p>`;
+            resultDiv.innerHTML += '<h3>Sugestão de Escalonamento:</h3>';
+            resultado.suggested_schedule.forEach(task => {
+                resultDiv.innerHTML += `<div>ID: ${task.id}, Prioridade: ${task.priority}</div>`;
+            });
+        }
+    </script>
+</body>
+</html>
